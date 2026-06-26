@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Financiamiento Automotriz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            padding: 20px;
+            color: #ffffff;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid #2a2a2a;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            border-bottom: 2px solid #2a2a2a;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #00d4ff, #7b2ffc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #888;
+            font-size: 0.95em;
+        }
+        
+        .fixed-values {
+            background: #111;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0 20px 0;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .fixed-item {
+            text-align: center;
+        }
+        
+        .fixed-item .label {
+            color: #666;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+        
+        .fixed-item .value {
+            color: #00d4ff;
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #aaa;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 15px;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #7b2ffc;
+            box-shadow: 0 0 20px rgba(123, 47, 252, 0.1);
+        }
+        
+        input[type="number"]::placeholder {
+            color: #555;
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #7b2ffc, #00d4ff);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(123, 47, 252, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .resultados {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .resultados.visible {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .resumen {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #111;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #2a2a2a;
+            transition: all 0.3s;
+        }
+        
+        .card:hover {
+            border-color: #7b2ffc;
+            transform: translateY(-2px);
+        }
+        
+        .card .label {
+            color: #666;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        
+        .card .value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .card .value.primary {
+            color: #00d4ff;
+        }
+        
+        .card .value.success {
+            color: #00ff88;
+        }
+        
+        .card .value.danger {
+            color: #ff4466;
+        }
+        
+        .tabla-container {
+            max-height: 450px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+            background: #111;
+        }
+        
+        .tabla-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .tabla-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+        
+        .tabla-container::-webkit-scrollbar-thumb {
+            background: #7b2ffc;
+            border-radius: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: #1a1a1a;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid #2a2a2a;
+        }
+        
+        th {
+            padding: 12px 15px;
+            text-align: right;
+            font-weight: 700;
+            color: #aaa;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        th:first-child {
+            text-align: center;
+        }
+        
+        td {
+            padding: 10px 15px;
+            text-align: right;
+            border-bottom: 1px solid #1a1a1a;
+            color: #ccc;
+            font-size: 0.95em;
+        }
+        
+        td:first-child {
+            text-align: center;
+            color: #666;
+            font-weight: 700;
+        }
+        
+        tr:hover td {
+            background: #1a1a1a;
+        }
+        
+        .error {
+            background: rgba(255, 68, 102, 0.1);
+            border: 1px solid #ff4466;
+            color: #ff4466;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            display: none;
+        }
+        
+        .loading.visible {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #1a1a1a;
+            border-top: 4px solid #7b2ffc;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-extra {
+            margin-top: 15px;
+            padding: 12px;
+            background: #0d0d0d;
+            border-radius: 8px;
+            border: 1px solid #1a1a1a;
+            font-size: 0.85em;
+            color: #666;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .resumen {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Financia tu Auto</h1>
+            <div class="subtitle">Calculadora de financiamiento automotriz</div>
+        </div>
+        
+        <!-- Valores fijos -->
+        <div class="fixed-values">
+            <div class="fixed-item">
+                <div class="label">Costo Administrativo</div>
+                <div class="value">${{ costo_fijo|format_number }}</div>
+            </div>
+            <div class="fixed-item">
+                <div class="label">Factor de Seguro</div>
+                <div class="value">{{ factor_seguro }}%</div>
+            </div>
+        </div>
+        
+        <form id="form-prestamo">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="monto">Valor del Vehículo ($)</label>
+                    <input type="number" id="monto" name="monto" step="100" min="1000" required placeholder="Ej: 1000000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="enganche">Enganche ($)</label>
+                    <input type="number" id="enganche" name="enganche" step="100" min="0" required placeholder="Ej: 200000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="tasa">Tasa de Interés (%)</label>
+                    <input type="number" id="tasa" name="tasa" step="0.1" min="0" required placeholder="Ej: 1.8">
+                </div>
+                
+                <div class="form-group">
+                    <label for="plazo">Plazo (meses)</label>
+                    <input type="number" id="plazo" name="plazo" min="1" required placeholder="Ej: 36">
+                </div>
+            </div>
+            
+            <button type="submit">Calcular Financiamiento</button>
+        </form>
+        
+        <div id="error" class="error"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Calculando tu financiamiento...</p>
+        </div>
+        
+        <div id="resultados" class="resultados">
+            <div class="resumen">
+                <div class="card">
+                    <div class="label">Financiamiento</div>
+                    <div class="value primary" id="financiamiento">$0</div>
+                </div>
+                <div class="card">
+                    <div class="label">Cuota Mensual</div>
+                    <div class="value primary" id="cuota-mensual">$0</div>
+                </div>
+                <div class="card">
+                    <div class="label">Total a Pagar</div>
+                    <div class="value" id="total-pagar">$0</div>
+                </div>
+                <div class="card">
+                    <div class="label">Total Intereses</div>
+                    <div class="value danger" id="total-interes">$0</div>
+                </div>
+            </div>
+            
+            <h3 style="color: #aaa; margin: 20px 0 15px; font-size: 1em; text-transform: uppercase; letter-spacing: 1px;">📊 Tabla de Amortización</h3>
+            <div class="tabla-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th>Cuota</th>
+                            <th>Interés</th>
+                            <th>Capital</th>
+                            <th>Saldo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-body">
+                    </tbody>
+                </table>
+            </div>
+            <div class="info-extra">
+                * Los valores incluyen costo administrativo y seguro aplicado por la financiera
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('form-prestamo').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            const resultadosDiv = document.getElementById('resultados');
+            
+            errorDiv.classList.remove('visible');
+            loadingDiv.classList.add('visible');
+            resultadosDiv.classList.remove('visible');
+            
+            const formData = new FormData(this);
+            
+            fetch('/calcular', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingDiv.classList.remove('visible');
+                
+                if (data.error) {
+                    errorDiv.textContent = data.error;
+                    errorDiv.classList.add('visible');
+                    return;
+                }
+                
+                document.getElementById('financiamiento').textContent = '$' + data.financiamiento.toLocaleString();
+                document.getElementById('cuota-mensual').textContent = '$' + data.cuota_mensual.toLocaleString();
+                document.getElementById('total-pagar').textContent = '$' + data.total_pagar.toLocaleString();
+                document.getElementById('total-interes').textContent = '$' + data.total_interes.toLocaleString();
+                
+                const tbody = document.getElementById('tabla-body');
+                tbody.innerHTML = '';
+                data.tabla.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.mes}</td>
+                        <td>$${row.cuota.toFixed(2)}</td>
+                        <td>$${row.interes.toFixed(2)}</td>
+                        <td>$${row.capital.toFixed(2)}</td>
+                        <td>$${row.saldo.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                resultadosDiv.classList.add('visible');
+                resultadosDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            })
+            .catch(error => {
+                loadingDiv.classList.remove('visible');
+                errorDiv.textContent = 'Error al calcular el financiamiento. Por favor intente nuevamente.';
+                errorDiv.classList.add('visible');
+                console.error('Error:', error);
+            });
+        });
+        
+        document.getElementById('monto').addEventListener('input', function() {
+            const enganche = document.getElementById('enganche');
+            if (enganche.value && parseFloat(enganche.value) > parseFloat(this.value)) {
+                enganche.style.borderColor = '#ff4466';
+            } else {
+                enganche.style.borderColor = '#2a2a2a';
+            }
+        });
+        
+        document.getElementById('enganche').addEventListener('input', function() {
+            const monto = document.getElementById('monto');
+            if (monto.value && parseFloat(this.value) > parseFloat(monto.value)) {
+                this.style.borderColor = '#ff4466';
+            } else {
+                this.style.borderColor = '#2a2a2a';
+            }
+        });
+    </script>
+</body>
+</html>
