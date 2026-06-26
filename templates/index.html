@@ -87,10 +87,6 @@
             margin-bottom: 10px;
         }
         
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-        
         label {
             display: block;
             font-weight: 600;
@@ -99,6 +95,44 @@
             font-size: 0.9em;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-wrapper .currency-symbol {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-weight: 700;
+            font-size: 16px;
+            pointer-events: none;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px 12px 30px;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+            text-align: right;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #7b2ffc;
+            box-shadow: 0 0 20px rgba(123, 47, 252, 0.1);
+        }
+        
+        input[type="text"]::placeholder {
+            color: #555;
+            text-align: right;
         }
         
         input[type="number"] {
@@ -129,6 +163,35 @@
         }
         input[type="number"] {
             -moz-appearance: textfield;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #7b2ffc;
+            box-shadow: 0 0 20px rgba(123, 47, 252, 0.1);
+        }
+        
+        select option {
+            background: #1a1a1a;
+            color: #fff;
         }
         
         button {
@@ -379,12 +442,24 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label for="monto">Valor del Vehículo ($)</label>
-                    <input type="number" id="monto" name="monto" step="100" min="1000" required placeholder="Ej: 1000000">
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">$</span>
+                        <input type="text" id="monto" name="monto" 
+                               placeholder="1,000,000" 
+                               autocomplete="off"
+                               inputmode="numeric">
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="enganche">Enganche ($)</label>
-                    <input type="number" id="enganche" name="enganche" step="100" min="0" required placeholder="Ej: 200000">
+                    <div class="input-wrapper">
+                        <span class="currency-symbol">$</span>
+                        <input type="text" id="enganche" name="enganche" 
+                               placeholder="200,000" 
+                               autocomplete="off"
+                               inputmode="numeric">
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -393,8 +468,12 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="plazo">Plazo (meses)</label>
-                    <input type="number" id="plazo" name="plazo" min="1" required placeholder="Ej: 36">
+                    <label for="plazo">Plazo</label>
+                    <select id="plazo" name="plazo" required>
+                        {% for opcion in opciones_plazo %}
+                            <option value="{{ opcion.value }}">{{ opcion.label }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             
@@ -450,6 +529,145 @@
     </div>
     
     <script>
+        // ============================================
+        // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADORES
+        // ============================================
+        function formatNumber(num) {
+            if (num === '' || num === null || num === undefined) return '';
+            
+            // Remover cualquier caracter que no sea número o punto
+            let clean = num.toString().replace(/[^0-9.]/g, '');
+            
+            // Si está vacío después de limpiar, retornar vacío
+            if (clean === '') return '';
+            
+            // Separar parte entera y decimal
+            let parts = clean.split('.');
+            let integerPart = parts[0];
+            let decimalPart = parts[1] || '';
+            
+            // Si no hay parte entera, retornar vacío
+            if (integerPart === '') return '';
+            
+            // Formatear parte entera con separadores de miles
+            let formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            // Agregar parte decimal si existe
+            if (decimalPart !== '') {
+                formatted += '.' + decimalPart;
+            }
+            
+            return formatted;
+        }
+
+        function parseNumber(formatted) {
+            if (formatted === '' || formatted === null || formatted === undefined) return '';
+            return formatted.replace(/,/g, '');
+        }
+
+        // ============================================
+        // FUNCIÓN PARA FORMATEAR CON 2 DECIMALES Y COMAS
+        // ============================================
+        function formatCurrency(value) {
+            if (value === undefined || value === null) return '0.00';
+            let num = parseFloat(value);
+            if (isNaN(num)) return '0.00';
+            return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        // ============================================
+        // INPUT DE MONTO (Valor del Vehículo)
+        // ============================================
+        const montoInput = document.getElementById('monto');
+        
+        montoInput.addEventListener('input', function(e) {
+            let cursorPos = this.selectionStart;
+            let rawValue = this.value;
+            
+            // Obtener valor numérico limpio
+            let numericValue = rawValue.replace(/[^0-9.]/g, '');
+            
+            // Si hay más de un punto, tomar solo el primero
+            let parts = numericValue.split('.');
+            if (parts.length > 2) {
+                numericValue = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            // Formatear
+            let formatted = formatNumber(numericValue);
+            
+            // Calcular nueva posición del cursor
+            let newCursorPos = cursorPos;
+            if (formatted.length > rawValue.length) {
+                newCursorPos = cursorPos + (formatted.length - rawValue.length);
+            }
+            
+            this.value = formatted;
+            
+            // Restaurar posición del cursor
+            if (document.activeElement === this) {
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        });
+
+        montoInput.addEventListener('blur', function() {
+            if (this.value === '' || this.value === '$') return;
+            let numeric = parseNumber(this.value);
+            if (numeric !== '' && !isNaN(numeric) && parseFloat(numeric) > 0) {
+                this.value = formatNumber(numeric);
+            }
+        });
+
+        montoInput.addEventListener('focus', function() {
+            // Seleccionar todo el texto al hacer focus
+            this.select();
+        });
+
+        // ============================================
+        // INPUT DE ENGANCHE
+        // ============================================
+        const engancheInput = document.getElementById('enganche');
+        
+        engancheInput.addEventListener('input', function(e) {
+            let cursorPos = this.selectionStart;
+            let rawValue = this.value;
+            
+            let numericValue = rawValue.replace(/[^0-9.]/g, '');
+            
+            let parts = numericValue.split('.');
+            if (parts.length > 2) {
+                numericValue = parts[0] + '.' + parts.slice(1).join('');
+            }
+            
+            let formatted = formatNumber(numericValue);
+            
+            let newCursorPos = cursorPos;
+            if (formatted.length > rawValue.length) {
+                newCursorPos = cursorPos + (formatted.length - rawValue.length);
+            }
+            
+            this.value = formatted;
+            
+            if (document.activeElement === this) {
+                this.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        });
+
+        engancheInput.addEventListener('blur', function() {
+            if (this.value === '' || this.value === '$') return;
+            let numeric = parseNumber(this.value);
+            if (numeric !== '' && !isNaN(numeric) && parseFloat(numeric) > 0) {
+                this.value = formatNumber(numeric);
+            }
+        });
+
+        engancheInput.addEventListener('focus', function() {
+            this.select();
+        });
+
+        // ============================================
+        // ENVÍO DEL FORMULARIO
+        // ============================================
         document.getElementById('form-prestamo').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -461,7 +679,16 @@
             loadingDiv.classList.add('visible');
             resultadosDiv.classList.remove('visible');
             
-            const formData = new FormData(this);
+            // Obtener valores limpios (sin comas)
+            const montoRaw = parseNumber(document.getElementById('monto').value);
+            const engancheRaw = parseNumber(document.getElementById('enganche').value);
+            
+            // Crear FormData y agregar valores limpios
+            const formData = new FormData();
+            formData.append('monto', montoRaw);
+            formData.append('enganche', engancheRaw);
+            formData.append('tasa', document.getElementById('tasa').value);
+            formData.append('plazo', document.getElementById('plazo').value);
             
             fetch('/calcular', {
                 method: 'POST',
@@ -477,21 +704,23 @@
                     return;
                 }
                 
-                document.getElementById('financiamiento').textContent = '$' + data.financiamiento.toLocaleString();
-                document.getElementById('cuota-mensual').textContent = '$' + data.cuota_mensual.toLocaleString();
-                document.getElementById('total-pagar').textContent = '$' + data.total_pagar.toLocaleString();
-                document.getElementById('total-interes').textContent = '$' + data.total_interes.toLocaleString();
+                // Mostrar resultados con formato de moneda
+                document.getElementById('financiamiento').textContent = '$' + formatCurrency(data.financiamiento);
+                document.getElementById('cuota-mensual').textContent = '$' + formatCurrency(data.cuota_mensual);
+                document.getElementById('total-pagar').textContent = '$' + formatCurrency(data.total_pagar);
+                document.getElementById('total-interes').textContent = '$' + formatCurrency(data.total_interes);
                 
+                // Generar tabla con formato de moneda
                 const tbody = document.getElementById('tabla-body');
                 tbody.innerHTML = '';
                 data.tabla.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${row.mes}</td>
-                        <td>$${row.cuota.toFixed(2)}</td>
-                        <td>$${row.interes.toFixed(2)}</td>
-                        <td>$${row.capital.toFixed(2)}</td>
-                        <td>$${row.saldo.toFixed(2)}</td>
+                        <td>$${formatCurrency(row.cuota)}</td>
+                        <td>$${formatCurrency(row.interes)}</td>
+                        <td>$${formatCurrency(row.capital)}</td>
+                        <td>$${formatCurrency(row.saldo)}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -506,19 +735,28 @@
                 console.error('Error:', error);
             });
         });
-        
-        document.getElementById('monto').addEventListener('input', function() {
+
+        // ============================================
+        // VALIDACIÓN EN TIEMPO REAL
+        // ============================================
+        document.getElementById('monto').addEventListener('blur', function() {
             const enganche = document.getElementById('enganche');
-            if (enganche.value && parseFloat(enganche.value) > parseFloat(this.value)) {
+            const montoVal = parseFloat(parseNumber(this.value));
+            const engancheVal = parseFloat(parseNumber(enganche.value));
+            
+            if (!isNaN(montoVal) && !isNaN(engancheVal) && engancheVal > montoVal) {
                 enganche.style.borderColor = '#ff4466';
             } else {
                 enganche.style.borderColor = '#2a2a2a';
             }
         });
         
-        document.getElementById('enganche').addEventListener('input', function() {
+        document.getElementById('enganche').addEventListener('blur', function() {
             const monto = document.getElementById('monto');
-            if (monto.value && parseFloat(this.value) > parseFloat(monto.value)) {
+            const montoVal = parseFloat(parseNumber(monto.value));
+            const engancheVal = parseFloat(parseNumber(this.value));
+            
+            if (!isNaN(montoVal) && !isNaN(engancheVal) && engancheVal > montoVal) {
                 this.style.borderColor = '#ff4466';
             } else {
                 this.style.borderColor = '#2a2a2a';

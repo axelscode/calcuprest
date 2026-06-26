@@ -25,7 +25,7 @@ def format_number(value):
 # ============================================
 # FUNCIONES DE CÁLCULO
 # ============================================
-def calcular_cuota_auto(monto, enganche, tasa, plazo):
+def calcular_cuota_auto(monto, enganche, tasa, plazo_meses):
     """
     Calcula la cuota mensual usando la fórmula exacta de la financiera
     """
@@ -41,13 +41,13 @@ def calcular_cuota_auto(monto, enganche, tasa, plazo):
     # Calcular cuota base (Sistema Francés)
     tasa_mensual = tasa / 100
     if tasa_mensual == 0:
-        cuota_base = financiamiento / plazo
+        cuota_base = financiamiento / plazo_meses
     else:
-        factor = (1 + tasa_mensual) ** plazo
+        factor = (1 + tasa_mensual) ** plazo_meses
         cuota_base = financiamiento * (tasa_mensual * factor) / (factor - 1)
     
     # Agregar el costo fijo mensual
-    costo_fijo_mensual = COSTO_FIJO / plazo
+    costo_fijo_mensual = COSTO_FIJO / plazo_meses
     cuota_con_costo = cuota_base + costo_fijo_mensual
     
     # Aplicar factor de seguro
@@ -57,7 +57,7 @@ def calcular_cuota_auto(monto, enganche, tasa, plazo):
     return round(cuota_final, 2), None
 
 
-def generar_tabla_amortizacion(monto, enganche, tasa, plazo):
+def generar_tabla_amortizacion(monto, enganche, tasa, plazo_meses):
     """
     Genera la tabla de amortización
     """
@@ -66,13 +66,13 @@ def generar_tabla_amortizacion(monto, enganche, tasa, plazo):
     # Calcular cuota base (Sistema Francés)
     tasa_mensual = tasa / 100
     if tasa_mensual == 0:
-        cuota_base = financiamiento / plazo
+        cuota_base = financiamiento / plazo_meses
     else:
-        factor = (1 + tasa_mensual) ** plazo
+        factor = (1 + tasa_mensual) ** plazo_meses
         cuota_base = financiamiento * (tasa_mensual * factor) / (factor - 1)
     
     # Agregar el costo fijo mensual
-    costo_fijo_mensual = COSTO_FIJO / plazo
+    costo_fijo_mensual = COSTO_FIJO / plazo_meses
     cuota_con_costo = cuota_base + costo_fijo_mensual
     
     # Aplicar factor de seguro
@@ -82,7 +82,7 @@ def generar_tabla_amortizacion(monto, enganche, tasa, plazo):
     tabla = []
     saldo = financiamiento
     
-    for mes in range(1, plazo + 1):
+    for mes in range(1, plazo_meses + 1):
         interes = saldo * tasa_mensual
         capital = cuota_base - interes
         saldo -= capital
@@ -102,35 +102,48 @@ def generar_tabla_amortizacion(monto, enganche, tasa, plazo):
 # ============================================
 @app.route('/')
 def index():
+    # Opciones de plazo en años
+    opciones_plazo = [
+        {'value': 12, 'label': '1 año'},
+        {'value': 24, 'label': '2 años'},
+        {'value': 36, 'label': '3 años'},
+        {'value': 48, 'label': '4 años'},
+        {'value': 60, 'label': '5 años'}
+    ]
     return render_template('index.html', 
                          costo_fijo=COSTO_FIJO,
-                         factor_seguro=FACTOR_SEGURO)
+                         factor_seguro=FACTOR_SEGURO,
+                         opciones_plazo=opciones_plazo)
 
 
 @app.route('/calcular', methods=['POST'])
 def calcular():
     try:
-        monto = float(request.form['monto'])
-        enganche = float(request.form['enganche'])
+        # Limpiar el formato de los números antes de parsear
+        monto_str = request.form['monto'].replace(',', '')
+        enganche_str = request.form['enganche'].replace(',', '')
+        
+        monto = float(monto_str)
+        enganche = float(enganche_str)
         tasa = float(request.form['tasa'])
-        plazo = int(request.form['plazo'])
+        plazo_meses = int(request.form['plazo'])
         
         # Validaciones
-        if monto <= 0 or enganche < 0 or tasa < 0 or plazo <= 0:
+        if monto <= 0 or enganche < 0 or tasa < 0 or plazo_meses <= 0:
             return jsonify({'error': 'Todos los valores deben ser positivos'}), 400
         
         if enganche >= monto:
             return jsonify({'error': 'El enganche debe ser menor al valor del vehículo'}), 400
         
         # Calcular cuota
-        cuota, error = calcular_cuota_auto(monto, enganche, tasa, plazo)
+        cuota, error = calcular_cuota_auto(monto, enganche, tasa, plazo_meses)
         if error:
             return jsonify({'error': error}), 400
         
         financiamiento = monto - enganche
-        total_pagar = cuota * plazo
+        total_pagar = cuota * plazo_meses
         total_interes = total_pagar - financiamiento
-        tabla = generar_tabla_amortizacion(monto, enganche, tasa, plazo)
+        tabla = generar_tabla_amortizacion(monto, enganche, tasa, plazo_meses)
         
         return jsonify({
             'financiamiento': round(financiamiento, 2),
@@ -139,7 +152,8 @@ def calcular():
             'total_interes': round(total_interes, 2),
             'tabla': tabla,
             'costo_fijo': COSTO_FIJO,
-            'factor_seguro': FACTOR_SEGURO
+            'factor_seguro': FACTOR_SEGURO,
+            'plazo_meses': plazo_meses
         })
     
     except ValueError:
