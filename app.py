@@ -12,9 +12,12 @@ app.secret_key = secrets.token_hex(16)
 # ============================================
 COSTO_FIJO = 13500
 FACTOR_SEGURO = 1.248  # AJUSTADO para que dé 19,412 en 60 meses
-FACTOR_RIESGO = 1.8
+# FACTOR_RIESGO se moverá a ser seleccionable por el usuario
 IVA = 0.16  # IVA general
 COMISION_APERTURA = 0.02  # 2% de comisión por apertura
+
+# Tasas de financiamiento disponibles
+TASAS_FINANCIAMIENTO = [1.5, 1.6, 1.7, 1.8]
 
 # ============================================
 # FILTROS PARA FORMATO DE NÚMEROS
@@ -54,7 +57,7 @@ def percentage_filter(value):
 # ============================================
 # FUNCIONES DE CÁLCULO MEJORADAS
 # ============================================
-def calcular_cuota_auto(monto, enganche, plazo_meses):
+def calcular_cuota_auto(monto, enganche, plazo_meses, tasa_financiamiento):
     """
     Calcula la cuota mensual usando la fórmula:
     (VALOR - ENGANCHE + COSTO_FIJO) * FACTOR_RIESGO * FACTOR_SEGURO / PLAZO
@@ -65,22 +68,22 @@ def calcular_cuota_auto(monto, enganche, plazo_meses):
     if financiamiento <= 0:
         return None, "El enganche debe ser menor al valor del vehículo"
     
-    # Fórmula
+    # Fórmula con tasa seleccionada
     paso1 = (monto - enganche) + COSTO_FIJO
-    paso2 = paso1 * FACTOR_RIESGO * FACTOR_SEGURO
+    paso2 = paso1 * tasa_financiamiento * FACTOR_SEGURO
     cuota_final = paso2 / plazo_meses
     
     return round(cuota_final, 2), None
 
-def generar_tabla_amortizacion(monto, enganche, plazo_meses):
+def generar_tabla_amortizacion(monto, enganche, plazo_meses, tasa_financiamiento):
     """
     Genera la tabla de amortización con más detalles financieros
     """
     financiamiento = monto - enganche
     
-    # Calcular la cuota mensual
+    # Calcular la cuota mensual con tasa seleccionada
     paso1 = (monto - enganche) + COSTO_FIJO
-    paso2 = paso1 * FACTOR_RIESGO * FACTOR_SEGURO
+    paso2 = paso1 * tasa_financiamiento * FACTOR_SEGURO
     cuota_mensual = paso2 / plazo_meses
     
     # Tasa de interés mensual (implícita)
@@ -146,6 +149,14 @@ def index():
         {'value': 60, 'label': '5 años', 'icon': '📅'}
     ]
     
+    # Opciones de tasa de financiamiento
+    opciones_tasa = [
+        {'value': 1.5, 'label': '1.5%', 'default': False},
+        {'value': 1.6, 'label': '1.6%', 'default': False},
+        {'value': 1.7, 'label': '1.7%', 'default': False},
+        {'value': 1.8, 'label': '1.8%', 'default': True}  # 1.8 como valor predeterminado
+    ]
+    
     # Datos de ejemplo para el dashboard
     estadisticas = {
         'total_simulaciones': 0,
@@ -157,8 +168,9 @@ def index():
     return render_template('index.html', 
                          costo_fijo=COSTO_FIJO,
                          factor_seguro=FACTOR_SEGURO,
-                         factor_riesgo=FACTOR_RIESGO,
                          opciones_plazo=opciones_plazo,
+                         opciones_tasa=opciones_tasa,
+                         tasas_financiamiento=TASAS_FINANCIAMIENTO,
                          iva=IVA,
                          estadisticas=estadisticas,
                          ano_actual=datetime.now().year)
@@ -170,15 +182,21 @@ def calcular():
         monto_str = request.form.get('monto', '').replace(',', '').strip()
         enganche_str = request.form.get('enganche', '').replace(',', '').strip()
         plazo_str = request.form.get('plazo', '').strip()
+        tasa_str = request.form.get('tasa', '').strip()
         
         # Validar que los datos existan
-        if not monto_str or not enganche_str or not plazo_str:
+        if not monto_str or not enganche_str or not plazo_str or not tasa_str:
             return jsonify({'error': 'Todos los campos son obligatorios'}), 400
         
         # Convertir a números
         monto = float(monto_str)
         enganche = float(enganche_str)
         plazo_meses = int(plazo_str)
+        tasa_financiamiento = float(tasa_str)
+        
+        # Validar que la tasa sea válida
+        if tasa_financiamiento not in TASAS_FINANCIAMIENTO:
+            return jsonify({'error': 'Tasa de financiamiento no válida'}), 400
         
         # Validaciones
         if monto <= 0:
@@ -193,8 +211,8 @@ def calcular():
         if plazo_meses <= 0:
             return jsonify({'error': 'El plazo debe ser mayor a 0'}), 400
         
-        # Calcular cuota
-        cuota, error = calcular_cuota_auto(monto, enganche, plazo_meses)
+        # Calcular cuota con tasa seleccionada
+        cuota, error = calcular_cuota_auto(monto, enganche, plazo_meses, tasa_financiamiento)
         if error:
             return jsonify({'error': error}), 400
         
@@ -203,14 +221,14 @@ def calcular():
         total_interes = total_pagar - financiamiento
         
         # Generar tabla de amortización con métricas
-        tabla, metricas = generar_tabla_amortizacion(monto, enganche, plazo_meses)
+        tabla, metricas = generar_tabla_amortizacion(monto, enganche, plazo_meses, tasa_financiamiento)
         
         # Calcular indicadores financieros
         indicadores = calcular_indicadores_financieros(monto, enganche, cuota, plazo_meses)
         
         # Detalle del cálculo
         paso1 = (monto - enganche) + COSTO_FIJO
-        paso2 = paso1 * FACTOR_RIESGO * FACTOR_SEGURO
+        paso2 = paso1 * tasa_financiamiento * FACTOR_SEGURO
         
         # Estadísticas de la tabla
         tabla_resumen = {
@@ -233,13 +251,13 @@ def calcular():
             'tabla_resumen': tabla_resumen,
             'costo_fijo': COSTO_FIJO,
             'factor_seguro': FACTOR_SEGURO,
-            'factor_riesgo': FACTOR_RIESGO,
+            'tasa_financiamiento': tasa_financiamiento,
             'plazo_meses': plazo_meses,
             'monto': monto,
             'enganche': enganche,
             'detalle_calculo': {
                 'paso1': f"({monto:,.0f} - {enganche:,.0f} + {COSTO_FIJO}) = {paso1:,.2f}",
-                'paso2': f"{paso1:,.2f} × {FACTOR_RIESGO} × {FACTOR_SEGURO} = {paso2:,.2f}",
+                'paso2': f"{paso1:,.2f} × {tasa_financiamiento} × {FACTOR_SEGURO} = {paso2:,.2f}",
                 'paso3': f"{paso2:,.2f} / {plazo_meses} = {cuota:,.2f}"
             }
         })

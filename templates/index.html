@@ -764,6 +764,24 @@
                     </div>
                 </div>
 
+                <!-- ===== NUEVO CAMPO: TASA DE FINANCIAMIENTO ===== -->
+                <div class="form-group">
+                    <label for="tasa">
+                        <i class="fas fa-percentage"></i> Tasa de Financiamiento
+                    </label>
+                    <select class="form-control" id="tasa" name="tasa" required>
+                        {% for tasa in opciones_tasa %}
+                        <option value="{{ tasa.value }}" {% if tasa.default %}selected{% endif %}>
+                            {{ tasa.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Selecciona la tasa aplicable según el perfil del cliente
+                    </div>
+                </div>
+
+
                 <div class="form-group">
                     <label for="enganche">
                         <i class="fas fa-hand-holding-usd"></i> Enganche
@@ -788,6 +806,7 @@
                     </select>
                 </div>
 
+                
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <button type="submit" class="btn btn-primary" id="calcularBtn">
                         <i class="fas fa-calculator"></i> Calcular Simulación
@@ -819,7 +838,13 @@
                 <ul style="list-style: none; padding-left: 20px; margin-top: 10px;">
                     <li>• Costo Fijo: <strong>${{ costo_fijo|format_number }}</strong></li>
                     <li>• Factor Seguro: <strong>{{ factor_seguro }}</strong></li>
-                    <li>• Factor Riesgo: <strong>{{ factor_riesgo }}</strong></li>
+                    <li>• Tasas disponibles: 
+                        <strong>
+                            {% for tasa in tasas_financiamiento %}
+                                {{ tasa }}%{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </strong>
+                    </li>
                     <li>• IVA: <strong>{{ (iva * 100)|int }}%</strong></li>
                 </ul>
                 <div style="margin-top: 20px; padding: 15px; background: var(--input-bg); border-radius: 8px; border-left: 3px solid var(--warning);">
@@ -967,8 +992,9 @@
                 const monto = document.getElementById('monto').value.replace(/,/g, '');
                 const enganche = document.getElementById('enganche').value.replace(/,/g, '');
                 const plazo = document.getElementById('plazo').value;
+                const tasa = document.getElementById('tasa').value;
 
-                if (!monto || !enganche || !plazo) {
+                if (!monto || !enganche || !plazo || !tasa) {
                     mostrarError('Todos los campos son obligatorios');
                     return;
                 }
@@ -998,6 +1024,7 @@
                 formData.append('monto', monto);
                 formData.append('enganche', enganche);
                 formData.append('plazo', plazo);
+                formData.append('tasa', tasa);
 
                 fetch('/calcular', {
                     method: 'POST',
@@ -1067,6 +1094,10 @@
                             <div>Paso 1: ${data.detalle_calculo.paso1}</div>
                             <div>Paso 2: ${data.detalle_calculo.paso2}</div>
                             <div>Paso 3: ${data.detalle_calculo.paso3}</div>
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-light);">
+                                <i class="fas fa-percentage" style="color: var(--accent);"></i> 
+                                Tasa aplicada: <strong>${data.tasa_financiamiento}%</strong>
+                            </div>
                         </div>
                     </div>
 
